@@ -1,47 +1,50 @@
 import {labType} from "./lab.js"
-function testTypeError(type){
-    if(type != "blood sugar level" && type != "blood pressure" && type != "cholesterol level"){
-        throw new Error("That type of testing is not available at this lab")
+class Validation{
+    constructor(){
+        if(this.constructor == Validation){
+            throw new Error("Can't instantiate labaratory")
+        }
+    }
+    static testTypeError(type){
+        if(type != "blood sugar level" && type != "blood pressure" && type != "cholesterol level"){
+            throw new Error("That type of testing is not available at this lab")
+        }
+    }
+    static notAssigned(patient,doctor){
+        if(patient.doctor != doctor){
+            throw new Error("You are not assigned to this patient"); //403
+        }
+    }
+    static wrongTime(currentTime,time,currentDate,date){
+        if(time != currentTime ||  date != currentDate){
+            console.log("Your lab appointment is not scheduled at this time");
+            return true;
+        }
     }
 }
-class Doctor{
-    labForPatient= [];
-    constructor(name,surname,specialty){
-        this.name = name;
-        this.surname = surname;
-        this.specialty = specialty;
-    }
-    makeLabAppointment(patient,date,time,type){
-        if(patient.doctor != this){
-            throw new Error("You are not assigned to this patient");
+class Labaratory{
+    constructor(){
+        if(this.constructor == Labaratory){
+            throw new Error("Can't instantiate labaratory") //abstract class
         }
-        testTypeError(type);
+    }
+    labForPatient= [];
+    makeLabAppointment(patient,date,time,type){
+        Validation.notAssigned(patient,this)
+        Validation.testTypeError(type);
         console.log(`${patient.name} ${patient.surname} JMBG:${patient.jmbg} fileNo:${patient.fileNum}
         Lab appointment for ${type} \n Time: ${date} ${time}`)
         this.labForPatient.push({"type":type, "date":date,"time":time, "patient":patient} )
-    }
-}
-class Patient{
-    doctor = ""
-    constructor(name,surname,jmbg,fileNum){
-        this.name = name;
-        this.surname = surname;
-        this.jmbg = jmbg;
-        this.fileNum = fileNum;
-    }
-    assignDoctor(doctor){
-        this.doctor = doctor; 
     }
     doLabWork(type,date,time){
         let tests = [];
         let results = [];
         const labId = this.doctor.labForPatient.findIndex((lab) =>  lab.type == type && lab.patient.jmbg == this.jmbg );
         if(labId === -1){
-            throw new Error("I'm sorry you don't have an appointment")
+            console.log("I'm sorry you don't have an appointment")
+            return;
         }
-
-        if(this.doctor.labForPatient[labId].time !=time || this.doctor.labForPatient[labId].date != date){
-            console.log("Your lab appointment is not scheduled at this time")
+        if(Validation.wrongTime(time,this.doctor.labForPatient[labId].time,date,this.doctor.labForPatient[labId].date)){
             return;
         }
         switch(type){
@@ -65,6 +68,34 @@ class Patient{
         Testing ${type} \n Results: ${results.map((result) => result)} \n Date: ${date} ${time} `)
         
     }
+}
+class Doctor extends Labaratory{
+    static id = 0;
+    constructor(name,surname,specialty){
+        super()
+        this.name = name;
+        this.surname = surname;
+        this.specialty = specialty;
+        Doctor.id++;
+        this.id = Doctor.id
+    }
+}
+class Patient extends Labaratory{
+    doctor = ""
+    static id = 0;
+    constructor(name,surname,jmbg,fileNum){
+        super()
+        this.name = name;
+        this.surname = surname;
+        this.jmbg = jmbg;
+        this.fileNum = fileNum;
+        Patient.id++;
+        this.id = Patient.id;
+    }
+    assignDoctor(doctor){
+        this.doctor = doctor; 
+    }
+    
 
 }
 function getDateTime(){
@@ -77,11 +108,13 @@ function getDateTime(){
     return `${dd}.${mm}.${yy} ${hh}:${min}`
 
 }
-let Dragan = new Patient("Dragan","Draganovic",1234,1); console.log(getDateTime(),"Created patient Dragan")
-let Milan = new Doctor("Milan","Milanovic","ORL"); console.log(getDateTime(),"Created doctor Milan")
-Dragan.assignDoctor(Milan); console.log(getDateTime(),"Assinged doctor Milan to patient Dragan")
-Milan.makeLabAppointment(Dragan,'1/1/2023','20:00',"blood sugar level"); 
-Milan.makeLabAppointment(Dragan,'1/1/2023','21:00',"blood pressure");
-Dragan.doLabWork("blood sugar level",'1/1/2023','20:00'); console.log(getDateTime(),"Patient Dragan takes the blood sugar level lab test")
-Dragan.doLabWork("blood pressure",'1/1/2023','21:00'); console.log(getDateTime(),"Patient Milan takes the blood sugar level lab test")
-
+function logEvents(message){
+    console.log(getDateTime(),message)
+}
+let patient = new Patient("Dragan","Draganovic",1234,1); logEvents("Created patient Dragan")
+let doctor = new Doctor("Milan","Milanovic","ORL"); logEvents("Created doctor Milan")
+patient.assignDoctor(doctor); logEvents("Assinged doctor Milan to patient Dragan")
+doctor.makeLabAppointment(patient,'1/1/2023','20:00',"blood sugar level"); 
+doctor.makeLabAppointment(patient,'1/1/2023','21:00',"blood pressure");
+patient.doLabWork("blood sugar level",'1/1/2023','22:00'); logEvents("Patient Dragan takes the blood sugar level lab test")
+patient.doLabWork("blood pressure",'1/1/2023','21:00'); logEvents("Patient Milan takes the blood sugar level lab test")
